@@ -1,0 +1,152 @@
+// Phase-1-Datenmodell. Lokal: SQLite. Produktion: provider = "postgresql" setzen
+// und DATABASE_URL auf Postgres (z. B. Supabase Frankfurt / Hetzner) zeigen lassen.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("OWNER") // OWNER | STAFF | CLIENT
+  createdAt    DateTime @default(now())
+  approvals    Approval[] @relation("decidedBy")
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  placeId       String?  @unique // Google-Place-ID -> Dubletten-Schutz
+  name          String
+  category      String?
+  address       String?
+  district      String?
+  city          String?
+  phone         String?  // nur Geschäftsnummer aus öffentlichem Profil
+  website       String?
+  instagram     String?
+  rating        Float?
+  reviewsCount  Int?
+  imagesCount   Int?
+  claimed       Boolean?
+  lat           Float?
+  lng           Float?
+  mapsUrl       String?
+  score         Int      @default(0)
+  scoreReasons  String   @default("[]") // JSON-Array
+  aiSummary     String?
+  status        String   @default("NEU") // NEU | KONTAKTIERT | TERMIN | ANGEBOT | KUNDE | UPSELL | VERLOREN
+  dealValue     Float?   // erwarteter Monatswert in €
+  nextAction    String?
+  nextActionAt  DateTime?
+  source        String   @default("google_maps")
+  searchId      String?
+  search        LeadSearch? @relation(fields: [searchId], references: [id])
+  deleteAfter   DateTime? // Löschkonzept: unbearbeitete Leads verfallen
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  events        LeadEvent[]
+  approvals     Approval[]
+  revenues      Revenue[]
+}
+
+model LeadSearch {
+  id         String   @id @default(cuid())
+  query      String
+  location   String
+  maxResults Int
+  status     String   @default("RUNNING") // RUNNING | DONE | FAILED
+  resultCount Int     @default(0)
+  costEur    Float    @default(0)
+  demo       Boolean  @default(false)
+  error      String?
+  createdAt  DateTime @default(now())
+  results    SearchResult[]
+  leads      Lead[]
+}
+
+// Rohergebnisse einer Suche; erst per Klick werden sie zu Leads im CRM.
+model SearchResult {
+  id        String   @id @default(cuid())
+  searchId  String
+  search    LeadSearch @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  placeId   String?
+  data      String   // JSON (normalisiert)
+  score     Int
+  scoreReasons String @default("[]")
+  imported  Boolean  @default(false)
+}
+
+model LeadEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String   // NOTE | STATUS | AI | CONTACT
+  text      String
+  createdAt DateTime @default(now())
+}
+
+// Human-in-the-Loop: alles, was nach außen geht, landet hier.
+model Approval {
+  id           String   @id @default(cuid())
+  type         String   // OUTREACH | POST | CLIENT_DELIVERY | PRODUCT
+  title        String
+  content      String
+  channel      String?  // BESUCH | BRIEF | EMAIL_OPTIN | ...
+  aiGenerated  Boolean  @default(true)
+  aiLabelOk    Boolean  @default(false) // KI-Kennzeichnung geprüft (Pflichtfeld)
+  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  comment      String?
+  leadId       String?
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  decidedById  String?
+  decidedBy    User?    @relation("decidedBy", fields: [decidedById], references: [id])
+  decidedAt    DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model Revenue {
+  id        String   @id @default(cuid())
+  date      DateTime
+  amount    Float    // netto in €
+  stream    String   // SERVICE | PRODUCT
+  note      String?
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model CostEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  tool      String   // apify | anthropic | higgsfield | ...
+  amount    Float    // € (Schätzung bei nutzungsbasierten APIs)
+  units     Float?
+  unitLabel String?
+  note      String?
+  fixed     Boolean  @default(false) // Abo vs. nutzungsbasiert
+}
+
+model Integration {
+  id           String   @id @default(cuid())
+  key          String   @unique // apify | anthropic
+  label        String
+  secretEnc    String?  // AES-256-GCM, nie im Klartext
+  budgetMonthly Float   @default(0) // 0 = kein Limit
+  status       String   @default("UNKNOWN") // OK | ERROR | UNKNOWN
+  lastCheckAt  DateTime?
+  lastError    String?
+}
+
+model LogEntry {
+  id        String   @id @default(cuid())
+  level     String   @default("INFO") // INFO | WARN | ERROR
+  source    String   // automation / modul
+  message   String
+  createdAt DateTime @default(now())
+}
