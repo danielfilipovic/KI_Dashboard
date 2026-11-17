@@ -9,23 +9,20 @@ Voraussetzung: Node.js ≥ 20.
 
 ```bash
 npm install
-cp .env.example .env
-```
-
-In `.env` zwei Zufallswerte eintragen (`ENCRYPTION_KEY`, `SESSION_SECRET`):
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-Außerdem `OWNER_EMAIL` und `OWNER_PASSWORD` (mindestens 12 Zeichen) setzen. Dann:
-
-```bash
 npm run setup
+```
+
+`npm run setup` legt die `.env` an (falls sie fehlt), erzeugt die geheimen Schlüssel `ENCRYPTION_KEY` und `SESSION_SECRET` automatisch und richtet die Datenbank ein. Danach in `.env` deine `OWNER_EMAIL` und dein `OWNER_PASSWORD` (mind. 12 Zeichen) eintragen und `npm run setup` **noch einmal** ausführen. Dann:
+
+```bash
 npm run dev
 ```
 
 → http://localhost:3000 öffnen und mit den Inhaber-Daten anmelden.
+
+### Fehlermeldung „ENCRYPTION_KEY fehlt“ oder „SESSION_SECRET fehlt“?
+
+Server mit Strg + C stoppen, dann `npm run env` ausführen (trägt fehlende Schlüssel in `.env` ein, vorhandene Werte bleiben unverändert) und `npm run dev` neu starten.
 
 ### Login klappt nicht?
 

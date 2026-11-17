@@ -264,9 +264,15 @@ export async function saveIntegration(form: FormData) {
   if (!(key in INTEGRATIONS)) return;
   const secret = str(form, "secret");
   const budget = Number(str(form, "budgetMonthly") || 0);
+  let secretEnc: string | undefined;
+  try {
+    secretEnc = secret ? encrypt(secret) : undefined;
+  } catch (e) {
+    back("/einstellungen", `${(e as Error).message} – im Terminal "npm run env" ausführen und den Server neu starten.`);
+  }
   await db.integration.update({
     where: { key },
-    data: { budgetMonthly: budget, ...(secret ? { secretEnc: encrypt(secret), status: "UNKNOWN" } : {}) },
+    data: { budgetMonthly: budget, ...(secretEnc ? { secretEnc, status: "UNKNOWN" } : {}) },
   });
   await log("einstellungen", `Integration ${key} aktualisiert${secret ? " (neuer Schlüssel)" : ""}`);
   back("/einstellungen", "Gespeichert.", "ok");
