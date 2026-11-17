@@ -12,7 +12,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1>Business Cockpit</h1>
           <p className="text-sm text-slate-500">Bitte anmelden</p>
         </div>
-        {error && <p className="rounded-lg bg-rose-50 p-2 text-sm text-rose-700">Anmeldung fehlgeschlagen.</p>}
+        {error && (
+          <p className="rounded-lg bg-rose-50 p-2 text-sm text-rose-700">
+            {error === "gesperrt"
+              ? "Zu viele Fehlversuche – 15 Minuten gesperrt (oder Server neu starten)."
+              : "E-Mail oder Passwort falsch. Passwort vergessen? Im Terminal: npm run passwort"}
+          </p>
+        )}
         <div>
           <label className="label" htmlFor="email">E-Mail</label>
           <input className="input" id="email" name="email" type="email" required autoComplete="email" />

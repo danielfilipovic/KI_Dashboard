@@ -27,6 +27,13 @@ npm run dev
 
 → http://localhost:3000 öffnen und mit den Inhaber-Daten anmelden.
 
+### Login klappt nicht?
+
+- **Passwort zurücksetzen:** Server mit Strg + C stoppen, dann `npm run passwort` ausführen, E-Mail und neues Passwort eingeben, danach `npm run dev`.
+- Passwort in `.env` geändert? `npm run setup` erneut ausführen; das Passwort aus `.env` wird übernommen.
+- Passwörter mit `#` oder `$` in `.env` immer in Anführungszeichen setzen: `OWNER_PASSWORD="Mein#Passwort$2026"`.
+- Nach 5 Fehlversuchen ist das Konto 15 Minuten gesperrt. Ein Neustart des Servers hebt die Sperre auf.
+
 **Ohne API-Schlüssel läuft alles im Demo-Modus** (Beispiel-Betriebe, Beispieltexte, keine Kosten). Echte Schlüssel trägst du unter **Einstellungen** ein. Sie werden dort AES-256-GCM-verschlüsselt gespeichert. Alternativ setzt du `APIFY_TOKEN` und `ANTHROPIC_API_KEY` in `.env`.
 
 ## Umgebungsvariablen

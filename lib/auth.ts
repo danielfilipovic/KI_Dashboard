@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { db } from "./db";
@@ -17,9 +17,10 @@ export async function createSession(userId: string, role: string) {
     .setIssuedAt()
     .setExpirationTime("7d")
     .sign(secret());
+  const proto = (await headers()).get("x-forwarded-proto") ?? "http";
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: proto.split(",")[0].trim() === "https",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
