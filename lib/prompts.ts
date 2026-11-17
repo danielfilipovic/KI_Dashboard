@@ -55,5 +55,52 @@ ${leadBlock(l)}
 
 Anforderungen: persönliche Anrede an "das Team von ${l.name}", eine konkrete Beobachtung, Angebot eines kostenlosen Probevideos, Kontakt per QR-Code-Hinweis "[QR-Code]", Absender "[Name, Adresse, Telefon]". Kein Hinweis darauf, dass der Text KI-generiert ist, aber auch keine erfundenen Details.`;
 
-// ---- Phase 2 (vorbereitet) ----
-export const HOOKS = (brief: string) => `Erzeuge 10 Hooks (max. 8 Wörter) für ein 15–30-Sekunden-Video. Briefing:\n${brief}\nMische Typen: Frage, Kontrast, Zahl, Vorher/Nachher, "POV". Gib pro Hook den Typ in Klammern an.`;
+// ---- Phase 2: Marketing-Studio ----
+export type Brief = {
+  client: string; industry?: string | null; brandNotes?: string | null; title: string; format: string; platform: string;
+  durationSec: number; goal?: string | null; offer?: string | null; audience?: string | null; tone?: string | null;
+  cta?: string | null; mustHave?: string | null;
+};
+
+const briefBlock = (b: Brief) => `Kunde: ${b.client} (${b.industry ?? "Branche unbekannt"})
+Markenrichtlinien: ${b.brandNotes || "keine hinterlegt"}
+Thema: ${b.title}
+Format: ${b.format}, ${b.durationSec} Sekunden, Plattform: ${b.platform}
+Ziel: ${b.goal || "–"}
+Angebot: ${b.offer || "–"}
+Zielgruppe: ${b.audience || "–"}
+Ton: ${b.tone || "–"}
+Call-to-Action: ${b.cta || "–"}
+Pflichtinhalte / vorhandenes echtes Material: ${b.mustHave || "–"}`;
+
+export const HOOKS = (b: Brief) => `Erzeuge 10 Hooks (max. 8 Wörter) für dieses Video.
+
+${briefBlock(b)}
+
+Mische Typen: Frage, Kontrast, Zahl, Vorher/Nachher, POV, Insider-Tipp.
+Regeln: kein Clickbait, das das Video nicht einlöst; keine Superlative ohne Beleg; Wiener Bezug nur, wo er natürlich passt.
+Antworte NUR mit 10 Zeilen in genau diesem Format, ohne Einleitung:
+1. Hook-Text (Typ)`;
+
+export const SCRIPT = (b: Brief, hook: string) => `Schreibe ein Skript für dieses Hochformat-Video (9:16). Hook: "${hook}"
+
+${briefBlock(b)}
+
+Gliederung (Markdown):
+## Shotlist
+Tabelle: Sekunde | Bild | Quelle (ECHT / KI-Video / KI-Bild) | Text-Overlay | Voice-over
+Bevorzuge echtes Material des Kunden; KI nur dort, wo es echtes Material sinnvoll ergänzt.
+## Generierungs-Prompts
+Für jede KI-Szene ein englischer Prompt (Motiv, Kamera, Licht, Stimmung, Dauer). Keine realen Personen, keine Marken oder Logos Dritter.
+## Caption
+Max. 150 Zeichen + 5 Hashtags.
+## KI-Kennzeichnung
+Ein Satz: ob ein Label nötig ist (realistische KI-Szenen, Stimmen, Personen) und welches Plattform-Label zu setzen ist.`;
+
+export function parseHooks(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.match(/^\s*\d+[.)]\s*(.+)$/)?.[1]?.trim())
+    .filter((h): h is string => Boolean(h))
+    .slice(0, 12);
+}

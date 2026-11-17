@@ -227,8 +227,16 @@ export async function decideApproval(form: FormData) {
     if (approval.leadId && approval.type === "OUTREACH") {
       await db.leadEvent.create({ data: { leadId: approval.leadId, type: "CONTACT", text: `Ansprache freigegeben (${approval.channel})` } });
     }
+    if (approval.orderId) {
+      await db.order.update({ where: { id: approval.orderId }, data: { stage: "KUNDE" } });
+      await db.orderEvent.create({ data: { orderId: approval.orderId, text: "Intern freigegeben → wartet auf Kundenfreigabe" } });
+    }
   } else {
     await db.approval.update({ where: { id }, data: { status: "REJECTED", decidedById: user.id, decidedAt: new Date(), comment: str(form, "comment") || null } });
+    if (approval.orderId) {
+      await db.order.update({ where: { id: approval.orderId }, data: { stage: "SCHNITT" } });
+      await db.orderEvent.create({ data: { orderId: approval.orderId, text: "Intern abgelehnt → zurück in den Schnitt" } });
+    }
   }
   await log("freigabe", `${approval.title}: ${decision === "APPROVED" ? "freigegeben" : "abgelehnt"}`);
   revalidatePath("/");
@@ -242,7 +250,7 @@ export async function addRevenue(form: FormData) {
   const amount = Number(str(form, "amount"));
   if (!(amount > 0)) back("/finanzen", "Betrag fehlt.");
   await db.revenue.create({
-    data: { amount, date: new Date(str(form, "date") || Date.now()), stream: str(form, "stream") === "PRODUCT" ? "PRODUCT" : "SERVICE", note: str(form, "note") || null, leadId: str(form, "leadId") || null },
+    data: { amount, date: new Date(str(form, "date") || Date.now()), stream: str(form, "stream") === "PRODUCT" ? "PRODUCT" : "SERVICE", note: str(form, "note") || null, leadId: str(form, "leadId") || null, clientId: str(form, "clientId") || null },
   });
   revalidatePath("/finanzen");
   back("/finanzen", "Umsatz erfasst.", "ok");

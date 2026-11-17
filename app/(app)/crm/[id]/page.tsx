@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { addNote, aiAssessLead, deleteLead, draftOutreach, setLeadStatus, updateLead } from "@/app/actions";
+import { createClient } from "@/app/studio-actions";
+import { PACKAGES } from "@/lib/constants";
 import { STATUSES, STATUS_LABEL, dt } from "@/lib/constants";
 import { scoreColor } from "@/lib/scoring";
 import { Flash } from "@/components/Flash";
@@ -14,7 +16,7 @@ export default async function LeadDetail({ params, searchParams }: { params: Pro
   const sp = await searchParams;
   const lead = await db.lead.findUnique({
     where: { id },
-    include: { events: { orderBy: { createdAt: "desc" } }, approvals: { orderBy: { createdAt: "desc" } } },
+    include: { events: { orderBy: { createdAt: "desc" } }, approvals: { orderBy: { createdAt: "desc" } }, client: true },
   });
   if (!lead) notFound();
   const reasons = JSON.parse(lead.scoreReasons) as string[];
@@ -74,6 +76,20 @@ export default async function LeadDetail({ params, searchParams }: { params: Pro
         </div>
 
         <div className="space-y-4">
+          {lead.client ? (
+            <Link href={`/kunden/${lead.client.id}`} className="card block bg-emerald-50 text-sm text-emerald-800">✓ Kunde – zur Kundenakte →</Link>
+          ) : (
+            <form action={createClient} className="card space-y-2">
+              <h2>Auftrag gewonnen?</h2>
+              <input type="hidden" name="leadId" value={lead.id} />
+              <input type="hidden" name="name" value={lead.name.replace(/ \(Demo\)$/, "")} />
+              <input type="hidden" name="industry" value={lead.category ?? ""} />
+              <select name="package" className="input" aria-label="Paket">
+                {Object.entries(PACKAGES).map(([k, p]) => <option key={k} value={k}>{p.label}{p.fee ? ` – ${p.fee} €/Monat` : ""}</option>)}
+              </select>
+              <button className="btn-ok w-full">Als Kunde anlegen</button>
+            </form>
+          )}
           <form action={setLeadStatus} className="card space-y-2">
             <input type="hidden" name="id" value={lead.id} />
             <label className="label" htmlFor="status">Status</label>

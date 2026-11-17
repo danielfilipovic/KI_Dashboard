@@ -53,6 +53,7 @@ model Lead {
   events        LeadEvent[]
   approvals     Approval[]
   revenues      Revenue[]
+  client        Client?
 }
 
 model LeadSearch {
@@ -104,6 +105,8 @@ model Approval {
   comment      String?
   leadId       String?
   lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  orderId      String?
+  order        Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   decidedById  String?
   decidedBy    User?    @relation("decidedBy", fields: [decidedById], references: [id])
   decidedAt    DateTime?
@@ -118,6 +121,8 @@ model Revenue {
   note      String?
   leadId    String?
   lead      Lead?    @relation(fields: [leadId], references: [id])
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
   createdAt DateTime @default(now())
 }
 
@@ -149,4 +154,98 @@ model LogEntry {
   source    String   // automation / modul
   message   String
   createdAt DateTime @default(now())
+}
+
+// ---------------- Phase 2: Marketing-Studio ----------------
+
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  industry      String?
+  contactName   String?  // Ansprechperson (Vertragspartner) – nur geschäftlich
+  contactEmail  String?  // Bestandskunde: E-Mail erlaubt
+  package       String   @default("STARTER") // STARTER | STANDARD | PREMIUM | INDIVIDUELL
+  monthlyFee    Float    @default(390)
+  videosPerMonth Int     @default(4)
+  startDate     DateTime @default(now())
+  status        String   @default("AKTIV") // AKTIV | PAUSIERT | BEENDET
+  brandNotes    String?  // Ton, Farben, No-Gos, Hashtags
+  consentAvatar Boolean  @default(false) // schriftliche Einwilligung Avatar/Gesicht
+  consentVoice  Boolean  @default(false) // schriftliche Einwilligung Stimmklon
+  leadId        String?  @unique
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  orders        Order[]
+  assets        Asset[]
+  revenues      Revenue[]
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title        String
+  format       String   @default("REEL") // REEL | BILD | KARUSSELL | STORY
+  platform     String   @default("Instagram")
+  durationSec  Int      @default(20)
+  stage        String   @default("BRIEFING") // BRIEFING | SKRIPT | GENERIERUNG | SCHNITT | INTERN | KUNDE | AUSGELIEFERT
+  goal         String?
+  offer        String?
+  audience     String?
+  tone         String?
+  cta          String?
+  mustHave     String?  // Pflichtinhalte, echte Assets
+  hooks        String   @default("[]") // JSON-Array der KI-Hooks
+  hook         String?  // gewählter Hook
+  script       String?  // Skript inkl. Shotlist und Generierungs-Prompts (editierbar)
+  dueAt        DateTime?
+  publishAt    DateTime? // geplanter Veröffentlichungstermin (Content-Kalender)
+  minutesSpent Int      @default(0)
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assets       Asset[]
+  approvals    Approval[]
+  events       OrderEvent[]
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  name         String
+  kind         String   // VIDEO | BILD | AUDIO | DOKUMENT | SONSTIGES
+  role         String   @default("ROH") // ROH (Material) | GENERIERT | FINAL
+  tags         String   @default("") // kommagetrennt
+  industry     String?
+  aiGenerated  Boolean  @default(false)
+  aiTool       String?  // z. B. Higgsfield, Kling, Nano Banana
+  aiDisclosure String?  // Kennzeichnungstext, z. B. "KI-generiert"
+  costEur      Float    @default(0)
+  isTemplate   Boolean  @default(false) // Branchen-Vorlage
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  orderId      String?
+  order        Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  versions     AssetVersion[]
+}
+
+model AssetVersion {
+  id         String   @id @default(cuid())
+  assetId    String
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  version    Int
+  storageKey String   // Pfad im Speicher (lokal oder S3)
+  fileName   String
+  mime       String
+  size       Int
+  note       String?
+  createdAt  DateTime @default(now())
 }

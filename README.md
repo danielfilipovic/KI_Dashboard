@@ -1,6 +1,9 @@
-# Business Cockpit – Phase 1 (MVP)
+# Business Cockpit
 
-Web-App zur Steuerung einer Ein-Personen-Content-Agentur: Lead-Finder (Google Maps über Apify), CRM, KI-Entwürfe mit Pflicht-Freigabe, Dashboard, Finanzen/Kosten mit Budget-Stopp.
+Web-App zur Steuerung einer Ein-Personen-Content-Agentur.
+
+- **Phase 1:** Lead-Finder (Google Maps über Apify), CRM, KI-Entwürfe mit Pflicht-Freigabe, Dashboard, Finanzen/Kosten mit Budget-Stopp
+- **Phase 2a (Marketing-Studio):** Kunden mit Paketen und Content-Kalender, Auftrags-Kanban (Briefing → Skript → Generierung → Schnitt → interne Freigabe → Kundenfreigabe → ausgeliefert), KI-Hooks und -Skripte mit Shotlist und Generierungs-Prompts, Upload von Videos/Bildern mit Versionen und KI-Kennzeichnung, Asset-Bibliothek mit Branchen-Vorlagen, Zeiterfassung pro Video
 Konzept, Preise, Architektur und Roadmap: **[docs/KONZEPT.md](docs/KONZEPT.md)**.
 
 ## Schnellstart (lokal, ca. 5 Minuten)
@@ -61,6 +64,11 @@ app/
   (app)/freigaben/        Human-in-the-Loop
   (app)/finanzen/         Umsatz, Kosten, Deckungsbeitrag
   (app)/einstellungen/    Integrationen, Budgets, Automationen, Protokoll, Löschkonzept
+  (app)/kunden/           Kunden, Pakete, Content-Kalender, Markenmaterial
+  (app)/studio/           Auftrags-Kanban + Auftragsseite (Briefing, Hooks, Skript, Upload, Freigabe)
+  (app)/assets/           Asset-Bibliothek
+  studio-actions.ts       Server Actions des Marketing-Studios
+  api/upload, api/files   Upload (Streaming auf Platte) und geschützte Auslieferung inkl. Video-Range
 components/               ApprovalCard, BarChart, Flash, SubmitButton
 lib/
   apify.ts                Google-Maps-Scraper (compass/crawler-google-places) + Demo-Daten
@@ -69,6 +77,7 @@ lib/
   prompts.ts              Prompt-Bibliothek
   budget.ts               Monatsbudget, automatischer Stopp, Kostenbuchung
   crypto.ts               AES-256-GCM
+  storage.ts              Dateispeicher (lokal; später S3-kompatibel austauschbar)
   auth.ts                 Session (JWT/httpOnly-Cookie), Rollen
 prisma/schema.prisma      Datenmodell Phase 1
 prisma/seed.ts            Inhaber + Integrationen anlegen
@@ -87,6 +96,20 @@ docs/                     Konzept + Screenshots
 8. AV-Verträge mit Hetzner, Apify und Anthropic abschließen bzw. ablegen; Datenschutzerklärung und Impressum ergänzen.
 
 Hinweis: Die Lead-Suche wartet synchron bis zu 5 Minuten auf Apify. Das funktioniert auf einem VPS, auf Vercel aber nicht ohne Weiteres (Funktions-Timeouts). In Phase 2 ersetzt eine Job-Queue diesen Schritt.
+
+## Nach einem Update
+
+```bash
+git pull
+npm install
+npm run setup
+```
+
+`npm run setup` passt die Datenbank an neue Funktionen an (bestehende Daten bleiben erhalten), danach `npm run dev`.
+
+## Dateien und Backups
+
+Hochgeladene Dateien liegen im Ordner `storage/` (änderbar über `STORAGE_DIR`), die Datenbank in `prisma/dev.db`. **Beide gehören ins Backup.** Maximale Uploadgröße: `UPLOAD_MAX_MB` (Standard 500).
 
 ## Sicherheit (umgesetzt)
 

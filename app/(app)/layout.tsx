@@ -7,11 +7,14 @@ const NAV = [
   { href: "/", label: "Übersicht", icon: "◧" },
   { href: "/leads", label: "Lead-Finder", icon: "⌖" },
   { href: "/crm", label: "CRM", icon: "☰" },
+  { href: "/kunden", label: "Kunden", icon: "♥" },
+  { href: "/studio", label: "Studio", icon: "▶" },
+  { href: "/assets", label: "Assets", icon: "▦" },
   { href: "/freigaben", label: "Freigaben", icon: "✓" },
   { href: "/finanzen", label: "Finanzen", icon: "€" },
   { href: "/einstellungen", label: "Einstellungen", icon: "⚙" },
 ];
-const LATER = ["Trend-Radar", "Marketing-Studio", "Social-Zentrale", "Produkt-Fabrik", "Kundenportal"];
+const LATER = ["Trend-Radar", "Social-Zentrale", "Produkt-Fabrik", "Kundenportal"];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -33,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
         <div className="hidden px-4 pt-4 md:block">
-          <p className="label">Phase 2/3</p>
+          <p className="label">Demnächst</p>
           {LATER.map((l) => <p key={l} className="py-1 text-sm text-slate-400">{l}</p>)}
         </div>
         <form action={logout} className="hidden p-4 md:absolute md:bottom-0 md:block">

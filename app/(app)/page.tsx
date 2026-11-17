@@ -23,6 +23,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const prev = monthRange(new Date(now.getFullYear(), now.getMonth() - 1, 15));
   const lastYear = monthRange(new Date(now.getFullYear() - 1, now.getMonth(), 15));
 
+  const week = new Date(Date.now() + 7 * 86_400_000);
+  const [inProduction, plannedWeek, mrrAgg, overdue] = await Promise.all([
+    db.order.count({ where: { stage: { notIn: ["AUSGELIEFERT"] } } }),
+    db.order.count({ where: { publishAt: { gte: start, lt: week } } }),
+    db.client.aggregate({ where: { status: "AKTIV" }, _sum: { monthlyFee: true }, _count: true }),
+    db.order.findMany({ where: { dueAt: { lt: now }, stage: { not: "AUSGELIEFERT" } }, include: { client: true }, take: 5 }),
+  ]);
   const [rev, revPrev, revLY, cost, byStatus, approvals, logs, integrations] = await Promise.all([
     sumRevenue(start, end), sumRevenue(prev.start, prev.end), sumRevenue(lastYear.start, lastYear.end), sumCost(start, end),
     db.lead.groupBy({ by: ["status"], _count: true }),
@@ -32,7 +39,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   ]);
   const count = (s: string) => byStatus.find((b) => b.status === s)?._count ?? 0;
   const openLeads = ["NEU", "KONTAKTIERT", "TERMIN", "ANGEBOT"].reduce((a, s) => a + count(s), 0);
-  const activeClients = count("KUNDE") + count("UPSELL");
+  const activeClients = mrrAgg._count;
 
   const months = await Promise.all(
     Array.from({ length: 6 }, (_, i) => {
@@ -47,10 +54,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const kpis = [
     { label: "Umsatz Monat", value: eur(rev), sub: `Vormonat ${eur(revPrev)} · Vorjahr ${eur(revLY)}` },
     { label: "Offene Leads", value: String(openLeads), sub: `${count("NEU")} neu, ${count("ANGEBOT")} im Angebot` },
-    { label: "Aktive Kunden", value: String(activeClients), sub: `${count("UPSELL")} mit Upsell` },
+    { label: "Aktive Kunden", value: String(activeClients), sub: `MRR ${eur(mrrAgg._sum.monthlyFee ?? 0)}` },
     { label: "Tool-Kosten Monat", value: eur(cost), sub: rev > 0 ? `${((cost / rev) * 100).toFixed(1)} % vom Umsatz` : "noch kein Umsatz" },
-    { label: "Geplante Posts", value: "–", sub: "ab Phase 2" },
-    { label: "Verkaufte Produkte", value: "–", sub: "ab Phase 2" },
+    { label: "Videos in Produktion", value: String(inProduction), sub: `${plannedWeek} Veröffentl. bis ${week.toLocaleDateString("de-AT")}` },
+    { label: "Verkaufte Produkte", value: "–", sub: "mit Produkt-Fabrik" },
   ];
 
   return (
@@ -87,6 +94,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </div>
           {approvals.length === 0 && <p className="card text-sm text-slate-500">Nichts offen. 🎉</p>}
           {approvals.map((a) => <ApprovalCard key={a.id} a={a} from="/" compact />)}
+          {overdue.length > 0 && (
+            <div className="card space-y-1 border-rose-200 bg-rose-50 text-sm">
+              <p className="font-medium text-rose-800">Überfällige Aufträge</p>
+              {overdue.map((o) => <Link key={o.id} href={`/studio/${o.id}`} className="block text-rose-700 hover:underline">{o.client.name}: {o.title} (fällig {o.dueAt!.toLocaleDateString("de-AT")})</Link>)}
+            </div>
+          )}
         </div>
         <div className="space-y-3">
           <h2>Aktivität</h2>
